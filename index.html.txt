@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ELF Creative Writing Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+<style>
+body {margin:0;font-family:'Montserrat',sans-serif;background:#f2f2f8;color:#333;}
+header {background:#6c5ce7;color:#fff;padding:30px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.2);}
+header h1 {margin:0;font-size:2.2rem;}
+.tabs {display:flex;justify-content:center;margin:20px 0;flex-wrap:wrap;gap:10px;}
+.tab-btn {padding:12px 25px;cursor:pointer;border:none;border-radius:12px;background:#ddd;transition:0.3s;font-weight:600;}
+.tab-btn.active {background:#6c5ce7;color:#fff;}
+.tab-btn:hover {background:#b2a4ff;}
+.tab-content {display:none;max-width:1000px;margin:0 auto;background:#fff;padding:25px;border-radius:16px;box-shadow:0 12px 25px rgba(0,0,0,0.1);transition:all 0.3s;}
+input, select, textarea, button {margin:6px 0;padding:10px;border-radius:8px;border:1px solid #ccc;font-size:1rem;}
+button {background:#6c5ce7;color:#fff;border:none;cursor:pointer;transition:0.3s;font-weight:600;}
+button:hover {background:#4834d4;}
+.lesson-card {display:flex;justify-content:space-between;align-items:center;background:#f7f7ff;padding:15px;margin:12px 0;border-radius:12px;box-shadow:0 6px 15px rgba(0,0,0,0.05);}
+.lesson-card.done {border-left:6px solid #28a745;}
+.lesson-card.notdone {border-left:6px solid #dc3545;}
+.lesson-card.unpaid {border-left:6px solid #ffc107;}
+.card-content {flex:1;}
+.card-buttons button {margin-left:10px;}
+.about-card, .settings-card {background:#f9f9ff;padding:20px;border-radius:12px;box-shadow:0 8px 20px rgba(0,0,0,0.05);margin-bottom:15px;}
+.hidden {display:none;}
+.progress-bar {height:14px;background:#ddd;border-radius:8px;margin-top:5px;}
+.progress-fill {height:14px;background:#28a745;border-radius:8px;width:0%;}
+@media(max-width:700px){.tabs{flex-direction:column;}.tab-btn{width:100%;}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="siteTitle">ELF Creative Writing</h1>
+  <p id="siteSubtitle">Learn, Write, Shine</p>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="openTab('login')">Login</button>
+  <button class="tab-btn hidden" id="dashboardTabBtn" onclick="openTab('dashboard')">Dashboard</button>
+  <button class="tab-btn hidden" id="settingsTabBtn" onclick="openTab('settings')">Settings</button>
+  <button class="tab-btn" onclick="openTab('about')">About Me</button>
+</div>
+
+<!-- LOGIN -->
+<div id="login" class="tab-content" style="display:block;">
+  <h2>Login</h2>
+  <select id="roleSelect">
+    <option value="">Select Role</option>
+    <option value="student">Student</option>
+    <option value="admin">Admin</option>
+  </select><br>
+  <input type="text" id="userNameInput" placeholder="Enter your name"><br>
+  <input type="password" id="adminPassInput" class="hidden" placeholder="Enter admin password"><br>
+  <button onclick="login()">Login</button>
+  <p id="loginMsg" style="color:red;"></p>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="tab-content">
+  <h2 id="welcomeMsg">Welcome!</h2>
+
+  <div id="adminControls" class="hidden">
+    <h3>Lessons Management</h3>
+    <div class="settings-card">
+      <input type="text" id="lessonNameInput" placeholder="Lesson Name">
+      <input type="text" id="lessonLinkInput" placeholder="Lesson Link (PDF/Video)">
+      <select id="lessonCategoryInput">
+        <option value="General">Category</option>
+        <option value="Beginner">Beginner</option>
+        <option value="Advanced">Advanced</option>
+      </select>
+      <button onclick="addLesson()">Add Lesson</button>
+    </div>
+    <div class="settings-card">
+      <button onclick="exportData()">Export Backup</button>
+      <input type="file" id="importFile" accept=".json"><button onclick="importData()">Import Backup</button>
+    </div>
+  </div>
+
+  <div id="lessonsContainer"></div>
+
+  <div id="paymentContainer" class="hidden">
+    <h3>Payment</h3>
+    <table style="width:100%;text-align:left;margin-bottom:15px;">
+      <tr><th>Lesson Duration</th><th>Price (SAR)</th></tr>
+      <tr><td>1 hour</td><td>30</td></tr>
+    </table>
+    <button id="payButton" onclick="payNow()">Pay</button>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="settings" class="tab-content">
+  <h2>Platform Settings</h2>
+  <div class="settings-card">
+    <input type="text" id="siteNameInput" placeholder="Website Name">
+    <input type="text" id="siteSubInput" placeholder="Subtitle">
+    <input type="color" id="bgColorInput"> Background Color<br>
+    <input type="color" id="headerColorInput"> Header Color<br>
+    <input type="text" id="stripeLinkInput" placeholder="Your Stripe Price ID"><br>
+    <button onclick="saveSettings()">Save Settings</button>
+  </div>
+</div>
+
+<!-- ABOUT ME -->
+<div id="about" class="tab-content">
+  <h2>About Me / CV</h2>
+  <div class="about-card">
+    <input type="text" id="aboutName" placeholder="Name"><br>
+    <input type="email" id="aboutEmail" placeholder="Email"><br>
+    <input type="text" id="aboutPhone" placeholder="Phone"><br>
+    <textarea id="aboutExp" rows="5" placeholder="Experience"></textarea><br>
+    <button onclick="saveAbout()">Save About Me</button>
+  </div>
+  <div id="aboutDisplay"></div>
+</div>
+
+<script src="https://js.stripe.com/v3/"></script>
+
+<script>
+// --- STORAGE ---
+let students = JSON.parse(localStorage.getItem('students')) || {};
+let lessons = JSON.parse(localStorage.getItem('lessons')) || [];
+let currentUser = null;
+let currentId = null;
+let role = null;
+const adminHash = '0d0b93c8a2e3e3270eb7dbb71c6e4c0f3c7d5b9e6f1d6d87d8e3f7b2e4d6a3e0';
+let settings = JSON.parse(localStorage.getItem('settings')) || {siteName:'ELF Creative Writing', siteSub:'Learn, Write, Shine', bgColor:'#f2f2f8', headerColor:'#6c5ce7', stripe:''};
+let aboutInfo = JSON.parse(localStorage.getItem('aboutInfo')) || {name:'',email:'',phone:'',exp:''};
+
+// --- INITIAL LOAD ---
+document.getElementById('siteTitle').innerText = settings.siteName;
+document.getElementById('siteSubtitle').innerText = settings.siteSub;
+document.body.style.background = settings.bgColor;
+document.querySelector('header').style.background = settings.headerColor;
+document.getElementById('bgColorInput').value = settings.bgColor;
+document.getElementById('headerColorInput').value = settings.headerColor;
+document.getElementById('siteNameInput').value = settings.siteName;
+document.getElementById('siteSubInput').value = settings.siteSub;
+document.getElementById('stripeLinkInput').value = settings.stripe;
+
+// --- ABOUT ---
+function saveAbout(){
+  aboutInfo.name = document.getElementById('aboutName').value;
+  aboutInfo.email = document.getElementById('aboutEmail').value;
+  aboutInfo.phone = document.getElementById('aboutPhone').value;
+  aboutInfo.exp = document.getElementById('aboutExp').value;
+  localStorage.setItem('aboutInfo', JSON.stringify(aboutInfo));
+  renderAbout();
+}
+function renderAbout(){
+  document.getElementById('aboutDisplay').innerHTML = `<div class="about-card">
+  <p><strong>Name:</strong> ${aboutInfo.name}</p>
+  <p><strong>Email:</strong> ${aboutInfo.email}</p>
+  <p><strong>Phone:</strong> ${aboutInfo.phone}</p>
+  <p><strong>Experience:</strong> ${aboutInfo.exp}</p></div>`;
+}
+renderAbout();
+
+// --- HASH FUNCTION ---
+async function sha256(message) {
+  const msgBuffer = new TextEncoder().encode(message);                   
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);   
+  const hashArray = Array.from(new Uint8Array(hashBuffer));              
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// --- LOGIN ---
+document.getElementById('roleSelect').addEventListener('change', function(){
+  if(this.value==='admin'){
+    document.getElementById('adminPassInput').classList.remove('hidden');
+  } else {
+    document.getElementById('adminPassInput').classList.add('hidden');
+  }
+});
+
+async function login(){
+  role = document.getElementById('roleSelect').value;
+  let name = document.getElementById('userNameInput').value.trim();
+  let pass = document.getElementById('adminPassInput').value;
+  if(!role || !name){document.getElementById('loginMsg').innerText='Fill all fields'; return;}
+  if(role==='admin'){
+    const hash = await sha256(pass);
+    if(hash!==adminHash){document.getElementById('loginMsg').innerText='Wrong admin password'; return;}
+    currentUser = name;
+    currentId = 'admin-'+name;
+    document.getElementById('dashboardTabBtn').classList.remove('hidden');
+    document.getElementById('settingsTabBtn').classList.remove('hidden');
+    document.getElementById('adminControls').classList.remove('hidden');
+    document.getElementById('paymentContainer').classList.add('hidden');
+  } else {
+    currentUser = name;
+    if(!students[name]){students[name]={id:crypto.randomUUID(),lessons:[],paid:false};}
+    currentId = students[name].id;
+    document.getElementById('dashboardTabBtn').classList.remove('hidden');
+    document.getElementById('settingsTabBtn').classList.add('hidden');
+    document.getElementById('adminControls').classList.add('hidden');
+    document.getElementById('paymentContainer').classList.remove('hidden');
+  }
+  localStorage.setItem('students', JSON.stringify(students));
+  document.getElementById('welcomeMsg').innerText = `Welcome, ${currentUser}!`;
+  renderLessons();
+  openTab('dashboard');
+}
+
+// --- TABS ---
+function openTab(tabName){
+  document.querySelectorAll('.tab-content').forEach(t=>t.style.display='none');
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(tabName).style.display='block';
+  let tabs = document.querySelectorAll('.tab-btn');
+  tabs.forEach(t=>{ if(t.innerText.toLowerCase().includes(tabName)) t.classList.add('active'); });
+}
+
+// --- LESSONS ---
+function addLesson(){
+  const name = document.getElementById('lessonNameInput').value.trim();
+  const link = document.getElementById('lessonLinkInput').value.trim();
+  const cat = document.getElementById('lessonCategoryInput').value;
+  if(!name||!link){alert('Fill lesson name and link'); return;}
+  if(!link.match(/\.(pdf|mp4|webm|ogg)$/)){alert('Only PDF or video links allowed'); return;}
+  lessons.push({name, link, category:cat, status:'Not Done'});
+  localStorage.setItem('lessons', JSON.stringify(lessons));
+  renderLessons();
+  document.getElementById('lessonNameInput').value='';
+  document.getElementById('lessonLinkInput').value='';
+}
+function deleteLesson(index){
+  if(confirm('Delete this lesson?')){
+    lessons.splice(index,1);
+    localStorage.setItem('lessons', JSON.stringify(lessons));
+    renderLessons();
+  }
+}
+function toggleLessonStatus(index){
+  let lesson = lessons[index];
+  lesson.status = lesson.status==='Done'?'Not Done':'Done';
+  localStorage.setItem('lessons', JSON.stringify(lessons));
+  renderLessons();
+}
+function renderLessons(){
+  if(!currentUser) return;
+  const container = document.getElementById('lessonsContainer');
+  container.innerHTML = '';
+  lessons.forEach((l,i)=>{
+    const div = document.createElement('div');
+    let statusClass = l.status==='Done'?'done':(role==='student' && !students[currentUser].paid?'unpaid':'notdone');
+    div.className = 'lesson-card '+statusClass;
+    let buttons = '';
+    if(role==='admin') buttons=`<button onclick="toggleLessonStatus(${i})">${l.status}</button><button onclick="deleteLesson(${i})">Delete</button>`;
+    else buttons=`<button onclick="toggleLessonStatus(${i})">${l.status}</button>`;
+    div.innerHTML=`<div class="card-content"><strong>${l.name}</strong> [${l.category}]<br><a href="${l.link}" target="_blank">Open Lesson</a>
+      <div class="progress-bar"><div class="progress-fill" style="width:${l.status==='Done'?100:0}%"></div></div></div>
+    <div class="card-buttons">${buttons}</div>`;
+    container.appendChild(div);
+  });
+}
+
+// --- SETTINGS ---
+function saveSettings(){
+  settings.siteName=document.getElementById('siteNameInput').value;
+  settings.siteSub=document.getElementById('siteSubInput').value;
+  settings.bgColor=document.getElementById('bgColorInput').value;
+  settings.headerColor=document.getElementById('headerColorInput').value;
+  settings.stripe=document.getElementById('stripeLinkInput').value;
+  localStorage.setItem('settings', JSON.stringify(settings));
+  document.getElementById('siteTitle').innerText=settings.siteName;
+  document.getElementById('siteSubtitle').innerText=settings.siteSub;
+  document.body.style.background=settings.bgColor;
+  document.querySelector('header').style.background=settings.headerColor;
+  alert('Settings Saved!');
+}
+
+// --- PAYMENT ---
+function payNow(){
+  if(!settings.stripe){alert('Payment link not set by admin'); return;}
+  // Simulate payment success for tablet-only testing
+  students[currentUser].paid = true;
+  localStorage.setItem('students', JSON.stringify(students));
+  alert('Payment Successful!');
+  renderLessons();
+}
+
+// --- BACKUP ---
+function exportData(){
+  const dataStr = JSON.stringify({students,lessons,settings,aboutInfo});
+  const blob = new Blob([dataStr],{type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'elf_backup.json';
+  a.click();
+}
+function importData(){
+  const fileInput = document.getElementById('importFile');
+  if(fileInput.files.length===0){alert('Select a file'); return;}
+  const file = fileInput.files[0];
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const data = JSON.parse(e.target.result);
+    students = data.students || {};
+    lessons = data.lessons || [];
+    settings = data.settings || settings;
+    aboutInfo = data.aboutInfo || aboutInfo;
+    localStorage.setItem('students',JSON.stringify(students));
+    localStorage.setItem('lessons',JSON.stringify(lessons));
+    localStorage.setItem('settings',JSON.stringify(settings));
+    localStorage.setItem('aboutInfo',JSON.stringify(aboutInfo));
+    renderLessons();
+    renderAbout();
+    alert('Data imported successfully!');
+  };
+  reader.readAsText(file);
+}
+</script>
+
+</body>
+</html>
